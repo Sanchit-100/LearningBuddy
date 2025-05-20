@@ -54,6 +54,36 @@ class QuestionDatabase:
             (question_id, user_answer, is_correct)
         )
         self.conn.commit()
+        
+    def get_topic_performance(self):
+        """
+        Retrieves user performance data grouped by topics
+        Returns a list of dictionaries with topic, correct_count, incorrect_count, and accuracy
+        """
+        self.cursor.execute("""
+            SELECT 
+                q.topic, 
+                SUM(CASE WHEN ua.is_correct THEN 1 ELSE 0 END) as correct_count,
+                SUM(CASE WHEN ua.is_correct = 0 THEN 1 ELSE 0 END) as incorrect_count,
+                COUNT(*) as total_count,
+                ROUND(SUM(CASE WHEN ua.is_correct THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as accuracy
+            FROM questions q
+            JOIN user_answers ua ON q.id = ua.question_id
+            GROUP BY q.topic
+            ORDER BY accuracy ASC
+        """)
+        
+        results = []
+        for row in self.cursor.fetchall():
+            results.append({
+                "topic": row[0],
+                "correct_count": row[1],
+                "incorrect_count": row[2],
+                "total_count": row[3],
+                "accuracy": row[4]
+            })
+        
+        return results
     
     def close(self):
         self.conn.close()

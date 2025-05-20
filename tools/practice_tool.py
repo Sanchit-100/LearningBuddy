@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 from langchain.tools import Tool
 from db.question_db import QuestionDatabase
 from langchain.chains import RetrievalQA
-
+import time
 # Global session storage
 active_sessions = {}
 
@@ -17,6 +17,12 @@ class PracticeSession:
         self.db = QuestionDatabase()
         self.retriever = retriever
         self.llm = llm
+        # Session metrics
+        self.start_time = time.time()
+        self.end_time = None
+        self.correct_answers = 0
+        self.incorrect_answers = 0
+        self.topics = {}  # Track performance by topic
         
     def generate_questions(self, num_questions=5):
         qa = RetrievalQA.from_chain_type(
@@ -122,6 +128,20 @@ class PracticeSession:
         # Record the answer in database
         self.db.record_answer(q['id'], user_letter, is_correct)
         
+        if is_correct:
+            self.correct_answers += 1
+        else:
+            self.incorrect_answers += 1
+            
+        # Track topic performance
+        topic = q.get('topic', self.topic)
+        if topic not in self.topics:
+            self.topics[topic] = {'correct': 0, 'total': 0}
+        
+        self.topics[topic]['total'] += 1
+        if is_correct:
+            self.topics[topic]['correct'] += 1
+            
         # Prepare feedback message
         if is_correct:
             feedback = f"✅ Correct! {q['explanation']}"
@@ -131,13 +151,57 @@ class PracticeSession:
         # Move to the next question
         self.current_index += 1
         
-        # Check if we have more questions
-        if self.current_index < len(self.questions):
-            next_question = self.get_current_question()
-            return feedback + "\n\n" + next_question
+        # Check if we've completed all questions
+        if self.current_index >= len(self.questions):
+            self.end_time = time.time()
+            feedback += "\n\nYou've completed all the practice questions!"
         else:
-            return feedback + "\n\nYou've completed all the practice questions!"
+            next_question = self.get_current_question()
+            feedback += "\n\n" + next_question
+            
+        return feedback
 
+    def get_session_report(self):
+        """Generate a report of the current session"""
+        # Ensure end_time is set
+        if not self.end_time and self.current_index >= len(self.questions):
+            self.end_time = time.time()
+        elif not self.end_time:
+            self.end_time = time.time()  # For in-progress sessions
+            
+        # Calculate duration
+        duration_seconds = self.end_time - self.start_time
+        duration_minutes = round(duration_seconds / 60)
+        
+        # Format topic data
+        topics_data = []
+        for topic_name, data in self.topics.items():
+            correct = data['correct']
+            total = data['total']
+            score = round((correct / total) * 100) if total > 0 else 0
+            topics_data.append({
+                "name": topic_name,
+                "score": score,
+                "correct": correct,
+                "total": total
+            })
+            
+        # Create report data
+        report = {
+            "session_id": self.session_id,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration_seconds": duration_seconds,
+            "duration_minutes": duration_minutes,
+            "total_quizzes": 1,  # Count each topic as a quiz
+            "total_questions": len(self.questions),
+            "correct_answers": self.correct_answers,
+            "incorrect_answers": self.incorrect_answers,
+            "topics": topics_data
+        }
+        
+        return report
+    
 def create_practice_tool(llm):
     def handle_practice(query):
         # Check if it's an answer to an existing session

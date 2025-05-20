@@ -19,11 +19,17 @@ function setupEventListeners() {
             updateToggleState(mode);
             document.getElementById(`${mode}-mode`).checked = true;
             
-            // Reset session when switching away from practice mode
-            if (mode !== 'practice') {
+            // Handle mode-specific actions
+            if (mode === 'recommendations') {
+                fetchRecommendations();
+            } else if (mode !== 'practice') {
                 currentSessionId = null;
             }
         });
+    });
+
+    document.getElementById('send-to-slack').addEventListener('click', () => {
+        sendReportToSlack();
     });
     
     // Allow Enter key to send message
@@ -48,11 +54,12 @@ function updateToggleState(activeMode) {
     const slider = document.querySelector('.slider');
     const options = document.querySelectorAll('.toggle-option');
     
-    options.forEach(option => {
+    options.forEach((option, index) => {
         const mode = option.getAttribute('data-mode');
         if (mode === activeMode) {
             option.classList.add('active');
-            slider.style.left = option.offsetLeft + 'px';
+            // Position the slider (33.33% width for each option)
+            slider.style.left = (index * 33.33) + '%';
         } else {
             option.classList.remove('active');
         }
@@ -60,9 +67,13 @@ function updateToggleState(activeMode) {
     
     // Update input placeholder based on mode
     const inputField = document.getElementById('user-input');
-    inputField.placeholder = activeMode === 'ask' ? 
-        'Ask a question about your documents...' : 
-        'Enter a topic for practice questions...';
+    if (activeMode === 'ask') {
+        inputField.placeholder = 'Ask a question about your documents...';
+    } else if (activeMode === 'practice') {
+        inputField.placeholder = 'Enter a topic for practice questions...';
+    } else if (activeMode === 'recommendations') {
+        inputField.placeholder = 'Search topics...';
+    }
 }
 
 function sendMessage() {
@@ -165,7 +176,8 @@ function appendMessage(sender, content, isError = false) {
     if (sender === 'bot' && (
         content.includes('quiz-question') || 
         content.includes('quiz-feedback') ||
-        content.includes('Question') && content.includes('<div class="quiz-options">')
+        content.includes('Question') && content.includes('<div class="quiz-options">') ||
+        content.includes('recommendations-container')
     )) {
         messageContent.innerHTML = content;
     } else if (typeof content === 'string' && content.includes('<') && content.includes('>')) {
@@ -179,6 +191,20 @@ function appendMessage(sender, content, isError = false) {
     // Add components to message
     messageDiv.appendChild(avatar);
     messageDiv.appendChild(messageContent);
+    
+    // Add quiz option click handlers if this is a quiz question
+    if (sender === 'bot' && content.includes('quiz-option')) {
+        setTimeout(() => {
+            const options = messageDiv.querySelectorAll('.quiz-option');
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    const letter = this.getAttribute('data-letter');
+                    document.getElementById('user-input').value = letter;
+                    sendMessage();
+                });
+            });
+        }, 100);
+    }
     
     chatBox.appendChild(messageDiv);
     scrollToBottom();
@@ -266,12 +292,112 @@ function formatQuizContent(content) {
                 </div>`;
             });
             
-            html += `</div></div>`;
+            html += `</div>
+                <div class="quiz-tip">Click an option or type the letter to answer</div>
+            </div>`;
             return html;
         }
     }
     
     return content;
+}
+
+function fetchRecommendations() {
+    showThinking(true);
+    
+    fetch("/recommendations")
+        .then(res => res.json())
+        .then(data => {
+            showThinking(false);
+            displayRecommendations(data.topics);
+        })
+        .catch(err => {
+            showThinking(false);
+            appendMessage('bot', `Error loading recommendations: ${err.message}`, true);
+        });
+}
+
+function displayRecommendations(topics) {
+    // Clear chat and remove welcome message
+    const chatBox = document.getElementById('chat-box');
+    const welcomeMsg = document.querySelector('.welcome-message');
+    if (welcomeMsg) {
+        welcomeMsg.remove();
+    }
+    
+    let content = '';
+    
+    if (topics.length === 0) {
+        content = `
+            <div class="recommendations-container">
+                <div class="recommendations-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>Learning Recommendations</h3>
+                </div>
+                <div class="no-data">
+                    <p>Practice more to get personalized learning recommendations.</p>
+                    <p>Switch to "Practice Quiz" mode to get started!</p>
+                </div>
+            </div>
+        `;
+    } else {
+        content = `
+            <div class="recommendations-container">
+                <div class="recommendations-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>Learning Recommendations</h3>
+                    <p>Based on your practice performance, here are topics to focus on:</p>
+                </div>
+                <div class="topics-list">
+        `;
+        
+        // Add topics sorted by performance (worst first)
+        topics.forEach((topic, index) => {
+            const performanceClass = topic.accuracy < 50 ? 'poor' : 
+                                    topic.accuracy < 75 ? 'average' : 'good';
+            
+            content += `
+                <div class="topic-item ${performanceClass}">
+                    <div class="topic-rank">${index + 1}</div>
+                    <div class="topic-details">
+                        <h4>${topic.topic}</h4>
+                        <div class="stats">
+                            <span>${topic.correct_count} correct</span>
+                            <span>${topic.incorrect_count} incorrect</span>
+                            <span class="accuracy">Accuracy: ${topic.accuracy}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress" style="width: ${topic.accuracy}%"></div>
+                        </div>
+                    </div>
+                    <button class="practice-topic" data-topic="${topic.topic}">Practice</button>
+                </div>
+            `;
+        });
+        
+        content += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add the recommendations to the chat
+    appendMessage('bot', content);
+    
+    // Add click handlers to practice buttons
+    setTimeout(() => {
+        document.querySelectorAll('.practice-topic').forEach(button => {
+            button.addEventListener('click', function() {
+                const topic = this.getAttribute('data-topic');
+                document.getElementById('user-input').value = topic;
+                // Switch to practice mode
+                updateToggleState('practice');
+                document.getElementById('practice-mode').checked = true;
+                // Send the message
+                sendMessage();
+            });
+        });
+    }, 100);
 }
 
 function showThinking(isActive) {
@@ -315,10 +441,11 @@ function clearChat() {
     welcomeMessage.innerHTML = `
         <div class="welcome-icon"><i class="fas fa-brain"></i></div>
         <h2>Welcome to Learning Buddy!</h2>
-        <p>I can help you learn from your documents in two ways:</p>
+        <p>I can help you learn from your documents in three ways:</p>
         <ul>
             <li><strong>Ask questions</strong> about the content in your documents</li>
             <li><strong>Practice with quizzes</strong> generated from your documents</li>
+            <li><strong>Get recommendations</strong> for topics to improve on</li>
         </ul>
         <p>Select a mode above and start learning!</p>
     `;
@@ -328,4 +455,83 @@ function clearChat() {
 function scrollToBottom() {
     const chatBox = document.getElementById('chat-box');
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function sendReportToSlack() {
+    // Check if there's an active session
+    if (!currentSessionId) {
+        appendMessage('bot', 'No active session to report. Complete a practice quiz first.');
+        return;
+    }
+    
+    // Create modal for entering Slack details
+    const modal = document.createElement('div');
+    modal.className = 'slack-modal';
+    modal.innerHTML = `
+        <div class="slack-modal-content">
+            <h3><i class="fab fa-slack"></i> Send Report to Slack</h3>
+            <div class="form-group">
+                <label for="user-name">Your Name:</label>
+                <input type="text" id="user-name" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label for="slack-channel">Slack Channel: <small>(optional)</small></label>
+                <input type="text" id="slack-channel" placeholder="learning-buddy-reports">
+            </div>
+            <div class="modal-actions">
+                <button id="cancel-report" class="modal-button cancel">Cancel</button>
+                <button id="submit-report" class="modal-button submit">Send Report</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add event listeners
+    document.getElementById('cancel-report').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('submit-report').addEventListener('click', () => {
+        const userName = document.getElementById('user-name').value;
+        const slackChannel = document.getElementById('slack-channel').value;
+        
+        // Show loading
+        document.getElementById('submit-report').textContent = 'Sending...';
+        document.getElementById('submit-report').disabled = true;
+        
+        // Send report
+        fetch("/send_report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+                channel: slackChannel || undefined,
+                user_name: userName || 'Anonymous'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            modal.remove();
+            if (data.success) {
+                appendMessage('bot', `
+                    <div class="report-success">
+                        <h3><i class="fas fa-check-circle"></i> Report Sent!</h3>
+                        <p>Your learning session report has been sent to Slack.</p>
+                    </div>
+                `);
+            } else {
+                appendMessage('bot', `
+                    <div class="report-error">
+                        <h3><i class="fas fa-exclamation-circle"></i> Unable to Send Report</h3>
+                        <p>${data.message}</p>
+                    </div>
+                `);
+            }
+        })
+        .catch(err => {
+            modal.remove();
+            appendMessage('bot', `Error sending report: ${err.message}`, true);
+        });
+    });
 }

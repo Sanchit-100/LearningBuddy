@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 from langchain_community.chat_models import ChatOpenAI
 from langchain.agents import initialize_agent
 from langchain.agents.agent_types import AgentType
-
+from utils.slack_reporter import SlackReporter
 from rag_tool import build_rag_tool_from_drive
 from tools.practice_tool import create_practice_tool, PracticeSession, active_sessions
+from db.question_db import QuestionDatabase
 
 load_dotenv()
 app = Flask(__name__)
@@ -93,5 +94,45 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/recommendations", methods=["GET"])
+def get_recommendations():
+    # Create a database connection
+    db = QuestionDatabase()
+    
+    # Get topic performance data
+    topic_data = db.get_topic_performance()
+    
+    # Return the data
+    return jsonify({"topics": topic_data})
+        
+@app.route("/send_report", methods=["POST"])
+def send_report():
+    data = request.json
+    session_id = data.get("session_id")
+    channel = data.get("channel")
+    user_name = data.get("user_name", "Anonymous")
+    
+    if not session_id or session_id not in active_sessions:
+        return jsonify({"error": "Invalid or expired session ID"}), 400
+        
+    # Get session data
+    session = active_sessions[session_id]
+    report_data = session.get_session_report()
+    
+    # Add user name if provided
+    if user_name:
+        report_data["user_name"] = user_name
+    
+    # Create Slack reporter and send report
+    slack = SlackReporter()
+    result = slack.send_report(report_data, channel)
+    
+    return jsonify({
+        "success": "error" not in result,
+        "message": "Report sent successfully" if "error" not in result else result.get("error"),
+        "report_data": report_data
+    })
+    
+    
 if __name__ == "__main__":
     app.run(debug=True)
