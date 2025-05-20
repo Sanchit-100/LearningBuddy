@@ -1,0 +1,14 @@
+Flask
+langchain
+langchain-community
+openai
+gspread
+google-auth
+faiss-cpu
+chromadb
+sentence-transformers
+unstructured
+pypdf
+python-dotenv
+pydrive
+huggingface-hub
