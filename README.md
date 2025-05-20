@@ -33,3 +33,26 @@ Learning Buddy is an AI-powered education platform that helps students learn sma
 | **AI Orchestration**   | LangChain                           |
 
 ---
+
+## Folder Structure 
+
+LearningBuddy/
+├── __pycache__/               # Cached Python files
+├── db/                        # Database-related files
+├── docs/                      # Documentation resources (if any)
+├── static/                    # Static assets (CSS, JS, icons)
+├── templates/                 # HTML templates for frontend rendering
+├── tools/                     # Utility scripts and helper modules
+│
+├── .env.example               # Sample environment variables
+├── .gitignore                 # Git ignored files
+├── README.md                  # Project documentation
+├── requirements.txt           # Python dependencies
+│
+├── app.py                     # Main application entry point
+├── drive_loader.py            # Script to load files from Google Drive
+├── google_sheets_tools.py     # Integration logic for Google Sheets
+├── question_data.db           # Local database for quiz/question storage
+├── rag_tool.py                # Handles RAG-based querying (Pinecone + LLM)
+├── tempCodeRunnerFile.py      # Temporary file used during testing
+
