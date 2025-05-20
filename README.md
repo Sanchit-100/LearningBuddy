@@ -25,12 +25,11 @@ Learning Buddy is an AI-powered education platform that helps students learn sma
 | Layer                  | Technology                         |
 |------------------------|-------------------------------------|
 | **Frontend**           | Custom Web UI (HTML/CSS/JS)         |
-| **Backend**            | Python (FastAPI / Flask)            |
-| **LLM APIs**           | Groq API / Gemini API               |
+| **Backend**            | Python                              |
+| **LLM APIs**           | Groq API                            |
 | **Vector DB (RAG)**    | Pinecone                            |
-| **Embeddings**         | OpenAI / BGE (text-embedding)       |
-| **Database**           | Firebase / PostgreSQL / Google Sheets |
-| **Automation**         | Rule-based logic (n8n planned)      |
-| **AI Orchestration**   | LangChain / Haystack (ADK)          |
+| **Embeddings**         | OpenAI                              |
+| **Database**           | PostgreSQL / Google Sheets          |
+| **AI Orchestration**   | LangChain                           |
 
 ---
