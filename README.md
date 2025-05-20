@@ -34,3 +34,17 @@ Learning Buddy is an AI-powered education platform that helps students learn sma
 
 ---
 
+## 📂 Folder Structure
+
+```text
+LearningBuddy/
+├── app.py                  # Main Flask application
+├── tools/                  # Custom LangChain tools
+├── templates/              # HTML templates
+├── static/                 # CSS/JS frontend assets
+├── db/                     # Local SQLite or question DB
+├── rag_tool.py             # RAG vector store logic
+├── drive_loader.py         # Google Drive integration (optional)
+├── google_sheets_tools.py  # Sheets-based tracking (optional)
+├── .env                    # API keys and config (not committed)
+└── requirements.txt        # Python dependencies
