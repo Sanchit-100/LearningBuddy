@@ -2,27 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Buddy</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Learning Buddy</h1>
+        <header>
+            <h1><i class="fas fa-robot"></i> Learning Buddy</h1>
+            <p class="tagline">Your AI-powered study companion</p>
+        </header>
 
         <div class="mode-toggle">
-            <label>
-                <input type="radio" name="mode" value="ask" checked> Ask a Question
-            </label>
-            <label>
-                <input type="radio" name="mode" value="practice"> Generate Practice
-            </label>
+            <div class="toggle-option" data-mode="ask">
+                <i class="fas fa-question-circle"></i>
+                <span>Ask a Question</span>
+            </div>
+            <div class="toggle-option" data-mode="practice">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Practice Quiz</span>
+            </div>
+            <div class="slider"></div>
+            <input type="radio" name="mode" value="ask" id="ask-mode" checked hidden>
+            <input type="radio" name="mode" value="practice" id="practice-mode" hidden>
         </div>
 
-        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-container">
+            <div class="chat-box" id="chat-box">
+                <div class="welcome-message">
+                    <div class="welcome-icon"><i class="fas fa-brain"></i></div>
+                    <h2>Welcome to Learning Buddy!</h2>
+                    <p>I can help you learn from your documents in two ways:</p>
+                    <ul>
+                        <li><strong>Ask questions</strong> about the content in your documents</li>
+                        <li><strong>Practice with quizzes</strong> generated from your documents</li>
+                    </ul>
+                    <p>Select a mode above and start learning!</p>
+                </div>
+            </div>
+            
+            <div class="chat-info" id="session-info">
+                <div class="typing-indicator hidden">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
 
         <div class="input-area">
-            <input type="text" id="user-input" placeholder="Type your message...">
-            <button onclick="sendMessage()">Send</button>
+            <div class="input-wrapper">
+                <input type="text" id="user-input" placeholder="Type your message or topic...">
+                <button id="clear-btn" class="icon-button" title="Clear input">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <button id="send-btn" class="primary-button" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+                <span>Send</span>
+            </button>
+        </div>
+        
+        <div class="bottom-bar">
+            <button id="clear-chat" class="text-button">
+                <i class="fas fa-trash-alt"></i> Clear chat
+            </button>
         </div>
     </div>
 

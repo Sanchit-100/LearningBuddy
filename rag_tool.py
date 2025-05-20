@@ -21,13 +21,13 @@ def build_vectorstore(documents):
     embeddings = HuggingFaceEmbeddings()
     return FAISS.from_documents(documents, embeddings)
 
-def build_rag_tool_from_drive(folder_id: str):
+def build_rag_tool_from_drive(folder_id: str, return_vectorstore=False):
     files = fetch_files_from_drive(folder_id)
     docs = load_documents(files)
     vectordb = build_vectorstore(docs)
 
     llm = ChatOpenAI(
-    model_name="llama3-70b-8192",  # or "llama3-70b-8192"
+    model_name="llama3-70b-8192",
     temperature=0.7
     )
     
@@ -37,8 +37,12 @@ def build_rag_tool_from_drive(folder_id: str):
         chain_type="stuff"
     )
 
-    return Tool.from_function(
+    tool = Tool.from_function(
         func=lambda q: qa.run(q),
         name="DriveRAGTool",
         description="Answers questions from documents in a shared Google Drive folder."
     )
+    
+    if return_vectorstore:
+        return tool, vectordb
+    return tool
