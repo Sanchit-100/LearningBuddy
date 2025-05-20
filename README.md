@@ -1,7 +1,7 @@
 
 # 🤖 Learning Buddy – AI-Powered Educational Assistant
 
-![Learning Buddy Logo](images/logo.png)
+![Learning Buddy Logo](images/logo.jpg)
 
 Learning Buddy is an interactive AI-powered educational assistant that helps users learn from their own documents. It combines question answering, interactive quizzes, personalized recommendations, and progress tracking in one intuitive interface.
 
@@ -14,7 +14,6 @@ Learning Buddy is an interactive AI-powered educational assistant that helps use
 - 📊 **Learning Analytics** – Track your performance and get recommendations on areas to improve
 - 🤖 **Slack Integration** – Share your learning progress with instructors or teams
 
-![Learning Buddy Interface](images/interface.png)
 
 ---
 
